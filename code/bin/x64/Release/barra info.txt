@@ -1,0 +1,42 @@
+bara.dll plugin for LCD Smartie
+
+Requires LCD Smartie 5.5 or newer
+Requires .NET Framework 4.8
+
+
+GENERAL INFO
+------------
+This plugin generates custom bars for LCD Smartie
+It can be used to visualise system values like CPU usage, MEM usage and use it with VU.dll to create vu bars
+
+VERSION
+-------
+1.2 beta
+
+FUNCTIONS
+---------
+  function1 to function 10
+  10 different styles of bars to select from
+  
+  
+  function13 and function 14
+  2 different styles of headless bars use with text on the top of the bar
+  
+  function19
+  diagnostics 
+  
+  fucntion20
+  credits
+
+
+EXAMPLES
+--------
+CPU 					$dll(barra,1,$SysCPUUsage,16)
+MEM 					$dll(barra,1,$MemU%,20)
+Test for value 74% on 40 blocks 	$dll(barra,4,74,40)
+Test for value 57% on 10 blocks 	$dll(barra,3,57,10)
+
+CREDITS
+-------
+Developer: Limbo
+2023-2024

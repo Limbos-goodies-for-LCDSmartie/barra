@@ -8,3 +8,13 @@ E:\Nextcloud\Development\LCD Smartie Plugins\barra\barra\obj\x64\Release\barra.v
 E:\Nextcloud\Development\LCD Smartie Plugins\barra\barra\obj\x64\Release\barra.dll
 E:\Nextcloud\Development\LCD Smartie Plugins\barra\barra\obj\x64\Release\barra.xml
 E:\Nextcloud\Development\LCD Smartie Plugins\barra\barra\obj\x64\Release\barra.pdb
+D:\Nextcloud\Development\VB14\06. LCD Smartie Plugins\barra\barra\bin\x64\Release\barra.dll
+D:\Nextcloud\Development\VB14\06. LCD Smartie Plugins\barra\barra\bin\x64\Release\barra.pdb
+D:\Nextcloud\Development\VB14\06. LCD Smartie Plugins\barra\barra\bin\x64\Release\barra.xml
+D:\Nextcloud\Development\VB14\06. LCD Smartie Plugins\barra\barra\obj\x64\Release\barra.vbproj.AssemblyReference.cache
+D:\Nextcloud\Development\VB14\06. LCD Smartie Plugins\barra\barra\obj\x64\Release\barra.Resources.resources
+D:\Nextcloud\Development\VB14\06. LCD Smartie Plugins\barra\barra\obj\x64\Release\barra.vbproj.GenerateResource.cache
+D:\Nextcloud\Development\VB14\06. LCD Smartie Plugins\barra\barra\obj\x64\Release\barra.vbproj.CoreCompileInputs.cache
+D:\Nextcloud\Development\VB14\06. LCD Smartie Plugins\barra\barra\obj\x64\Release\barra.dll
+D:\Nextcloud\Development\VB14\06. LCD Smartie Plugins\barra\barra\obj\x64\Release\barra.xml
+D:\Nextcloud\Development\VB14\06. LCD Smartie Plugins\barra\barra\obj\x64\Release\barra.pdb
