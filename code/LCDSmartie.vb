@@ -1,750 +1,412 @@
-﻿
-Imports System.Reflection.Emit
+﻿Imports System.Reflection.Emit
 
 Public Class LCDSmartie
-
     Dim topValue As Integer = 100
-
-    Dim topValue1 As Integer = 100
     Dim numVisibleBlocks(15) As Integer
     Dim remainingLinesToShow(15) As Integer
     Dim remainingBlocks(15) As Integer
 
-    ' Simplified Calculation Method
+    ' Corrected Calculation Method - Guarantees exact block count
     Public Sub CalculateNumberOfVisibleBlocks1(valIn As Integer, valInBlocks As Integer, funcNo As Integer)
-        Dim percentage As Double = (valIn * 100.0) / topValue
+        ' Ensure value is within 0-100 range
+        valIn = Math.Max(0, Math.Min(valIn, 100))
 
-        Dim totalNumberOfLines As Integer = valInBlocks * 5
-        Dim barValue As Double = (percentage / 100) * valInBlocks
-        Dim lineValue As Double = (percentage / 100) * totalNumberOfLines
+        Dim percentage As Double = valIn / 100.0
+        Dim totalLines As Integer = valInBlocks * 5
+        Dim linesToFill As Integer = CInt(Math.Floor(totalLines * percentage))
 
-        numVisibleBlocks(funcNo) = CInt(Fix(barValue))
-        remainingLinesToShow(funcNo) = lineValue - (numVisibleBlocks(funcNo) * 5)
-        remainingBlocks(funcNo) = valInBlocks - numVisibleBlocks(funcNo)
+        ' Calculate full blocks and partial block lines
+        numVisibleBlocks(funcNo) = linesToFill \ 5
+        remainingLinesToShow(funcNo) = linesToFill Mod 5
+
+        ' Remaining blocks are always total blocks - full blocks - (1 if partial exists)
+        remainingBlocks(funcNo) = valInBlocks - numVisibleBlocks(funcNo) - IIf(remainingLinesToShow(funcNo) > 0, 1, 0)
     End Sub
 
-    ' Simplified Function for Output
+    ' Unified block generation method for all functions
+    Private Function GenerateBar(funcNo As Integer, totalBlocks As Integer) As String
+        Dim visibleBar As String = ""
+
+        ' Add full blocks
+        For i As Integer = 1 To numVisibleBlocks(funcNo)
+            visibleBar &= "$Chr(0)" ' Full block
+        Next
+
+        ' Add partial block if needed
+        If remainingLinesToShow(funcNo) > 0 Then
+            visibleBar &= "$Chr(" & remainingLinesToShow(funcNo) & ")" ' Partial blocks 1-4
+        End If
+
+        ' Add empty blocks to reach exact count
+        Dim emptyBlocksNeeded As Integer = totalBlocks - numVisibleBlocks(funcNo) - IIf(remainingLinesToShow(funcNo) > 0, 1, 0)
+        For i As Integer = 1 To emptyBlocksNeeded
+            visibleBar &= "$Chr(5)" ' Empty block
+        Next
+
+        Return visibleBar
+    End Function
+
+    ' Function 1 - Solid block with frame
     Public Function function1(param1 As String, param2 As String) As String
-        ' Dim blocksProduced As Integer = 0
         If LCase(param1) = "about" Then
             Return "1 bar"
         Else
-            If param1 = Nothing Then param1 = 0
-            If param2 = Nothing Then param2 = 0
+            If String.IsNullOrEmpty(param1) Then param1 = "0"
+            If String.IsNullOrEmpty(param2) Then param2 = "0"
 
-            CalculateNumberOfVisibleBlocks1(Convert.ToInt64(param1), Convert.ToInt64(param2), 1)
+            Dim value As Integer = Convert.ToInt32(param1)
+            Dim totalBlocks As Integer = Convert.ToInt32(param2)
+            If totalBlocks <= 0 Then Return String.Empty
 
-            Dim BlockFull As String = "$CustomChar(1,0,31,0,31,31,0,31,0)"
-            Dim BlockOne As String = "$CustomChar(2,0,31,0,16,16,0,31,0)"
-            Dim BlockTwo As String = "$CustomChar(3,0,31,0,24,24,0,31,0)"
-            Dim BlockThree As String = "$CustomChar(4,0,31,0,28,28,0,31,0)"
-            Dim BlockFour As String = "$CustomChar(5,0,31,0,30,30,0,31,0)"
-            Dim BlockEmpty As String = "$CustomChar(6,0,31,0,0,0,0,31,0)"
+            CalculateNumberOfVisibleBlocks1(value, totalBlocks, 1)
 
-            Dim callBlockFull As String = "$Chr(0)"
-            Dim callBlockOne As String = "$Chr(1)"
-            Dim callBlockTwo As String = "$Chr(2)"
-            Dim callBlockThree As String = "$Chr(3)"
-            Dim callBlockFour As String = "$Chr(4)"
-            Dim callBlockEmpty As String = "$Chr(5)"
+            Dim defineChars As String = "$CustomChar(1,0,31,0,31,31,0,31,0)" &  ' Full
+                                       "$CustomChar(2,0,31,0,16,16,0,31,0)" &  ' 1/5
+                                       "$CustomChar(3,0,31,0,24,24,0,31,0)" &  ' 2/5
+                                       "$CustomChar(4,0,31,0,28,28,0,31,0)" &  ' 3/5
+                                       "$CustomChar(5,0,31,0,30,30,0,31,0)" &  ' 4/5
+                                       "$CustomChar(6,0,31,0,0,0,0,31,0)"      ' Empty
 
-            Dim visibleBar As String = ""
-
-            For i As Integer = 1 To numVisibleBlocks(1)
-                visibleBar &= callBlockFull
-                '  blocksProduced = blocksProduced + 1
-            Next
-
-            Select Case remainingLinesToShow(1)
-                Case 1
-                    visibleBar &= callBlockOne
-                Case 2
-                    visibleBar &= callBlockTwo
-                Case 3
-                    visibleBar &= callBlockThree
-                Case 4
-                    visibleBar &= callBlockFour
-                Case 5
-                    visibleBar &= callBlockFull
-            End Select
-
-            Dim remainBlocks As String = ""
-            If param1 Mod 10 = 0 Then
-                For i As Integer = 1 To remainingBlocks(1)
-                    remainBlocks &= callBlockEmpty
-                Next
-            Else
-                For i As Integer = 1 To remainingBlocks(1) - 1
-                    remainBlocks &= callBlockEmpty
-                Next
-            End If
-
-            Dim defineChars = BlockFull & BlockOne & BlockTwo & BlockThree & BlockFour & BlockEmpty
-            Return defineChars & visibleBar & remainBlocks
-            ' Return " Full:" & blocksProduced & " Remain:" & remainingBlocks(1)
+            Return defineChars & GenerateBar(1, totalBlocks)
         End If
-
     End Function
 
-
-    Public Function function2(param1 As String, param2 As String)
-        If LCase(param1) = "about" Or LCase(param1) = "about" Then
+    ' Function 2 - Thin horizontal bar
+    Public Function function2(param1 As String, param2 As String) As String
+        If LCase(param1) = "about" Then
             Return "2 bar"
         Else
-            If param1 = Nothing Then param1 = 0
-            If param2 = Nothing Then param2 = 0
-            CalculateNumberOfVisibleBlocks1(Convert.ToInt64(param1), Convert.ToInt64(param2), 2)
-            Dim BlockFull As String = "$CustomChar(1,0,0,0,31,31,0,0,0)"
-            Dim BlockOne As String = "$CustomChar(2,0,0,0,16,21,0,0,0)"
-            Dim BlockTwo As String = "$CustomChar(3,0,0,0,24,29,0,0,0)"
-            Dim BlockThree As String = "$CustomChar(4,0,0,0,28,29,0,0,0)"
-            Dim BlockFour As String = "$CustomChar(5,0,0,0,30,31,0,0,0)"
-            Dim BlockEmpty As String = "$CustomChar(6,0,0,0,0,21,0,0,0)"
-            Dim callBlockFull As String = "$Chr(0)"
-            Dim callBlockOne As String = "$Chr(1)"
-            Dim callBlockTwo As String = "$Chr(2)"
-            Dim callBlockThree As String = "$Chr(3)"
-            Dim callBlockFour As String = "$Chr(4)"
-            Dim callBlockEmpty As String = "$Chr(5)"
-            Dim visibleBar As String = ""
+            If String.IsNullOrEmpty(param1) Then param1 = "0"
+            If String.IsNullOrEmpty(param2) Then param2 = "0"
 
-            For i As Integer = 1 To numVisibleBlocks(2)
-                visibleBar &= callBlockFull
-                '  blocksProduced = blocksProduced + 1
-            Next
+            Dim value As Integer = Convert.ToInt32(param1)
+            Dim totalBlocks As Integer = Convert.ToInt32(param2)
+            If totalBlocks <= 0 Then Return String.Empty
 
-            Select Case remainingLinesToShow(2)
-                Case 1
-                    visibleBar &= callBlockOne
-                Case 2
-                    visibleBar &= callBlockTwo
-                Case 3
-                    visibleBar &= callBlockThree
-                Case 4
-                    visibleBar &= callBlockFour
-                Case 5
-                    visibleBar &= callBlockFull
-            End Select
+            CalculateNumberOfVisibleBlocks1(value, totalBlocks, 2)
 
-            Dim remainBlocks As String = ""
-            If param1 Mod 10 = 0 Then
-                For i As Integer = 1 To remainingBlocks(2)
-                    remainBlocks &= callBlockEmpty
-                Next
-            Else
-                For i As Integer = 1 To remainingBlocks(2) - 1
-                    remainBlocks &= callBlockEmpty
-                Next
-            End If
+            Dim defineChars As String = "$CustomChar(1,0,0,0,31,31,0,0,0)" &
+                                       "$CustomChar(2,0,0,0,16,21,0,0,0)" &
+                                       "$CustomChar(3,0,0,0,24,29,0,0,0)" &
+                                       "$CustomChar(4,0,0,0,28,29,0,0,0)" &
+                                       "$CustomChar(5,0,0,0,30,31,0,0,0)" &
+                                       "$CustomChar(6,0,0,0,0,21,0,0,0)"
 
-            Dim defineChars = BlockFull & BlockOne & BlockTwo & BlockThree & BlockFour & BlockEmpty
-            Return defineChars & visibleBar & remainBlocks
-            ' Return " Full:" & blocksProduced & " Remain:" & remainingBlocks(1)
+            Return defineChars & GenerateBar(2, totalBlocks)
         End If
     End Function
 
-
-    Public Function function3(param1 As String, param2 As String)
-        If LCase(param1) = "about" Or LCase(param1) = "about" Then
+    ' Function 3 - Thick centered bar
+    Public Function function3(param1 As String, param2 As String) As String
+        If LCase(param1) = "about" Then
             Return "3 bar"
         Else
-            If param1 = Nothing Then param1 = 0
-            If param2 = Nothing Then param2 = 0
-            CalculateNumberOfVisibleBlocks1(Convert.ToInt64(param1), Convert.ToInt64(param2), 3)
-            Dim BlockFull As String = "$CustomChar(1,0,0,31,31,31,31,0,0)"
-            Dim BlockOne As String = "$CustomChar(2,0,0,16,16,16,23,0,0)"
-            Dim BlockTwo As String = "$CustomChar(3,0,0,24,24,24,27,0,0)"
-            Dim BlockThree As String = "$CustomChar(4,0,0,28,28,28,29,0,0)"
-            Dim BlockFour As String = "$CustomChar(5,0,0,30,30,30,30,0,0)"
-            Dim BlockEmpty As String = "$CustomChar(6,0,0,0,0,0,31,0,0)"
-            Dim callBlockFull As String = "$Chr(0)"
-            Dim callBlockOne As String = "$Chr(1)"
-            Dim callBlockTwo As String = "$Chr(2)"
-            Dim callBlockThree As String = "$Chr(3)"
-            Dim callBlockFour As String = "$Chr(4)"
-            Dim callBlockEmpty As String = "$Chr(5)"
-            Dim visibleBar As String = ""
+            If String.IsNullOrEmpty(param1) Then param1 = "0"
+            If String.IsNullOrEmpty(param2) Then param2 = "0"
 
-            For i As Integer = 1 To numVisibleBlocks(3)
-                visibleBar &= callBlockFull
-                '  blocksProduced = blocksProduced + 1
-            Next
+            Dim value As Integer = Convert.ToInt32(param1)
+            Dim totalBlocks As Integer = Convert.ToInt32(param2)
+            If totalBlocks <= 0 Then Return String.Empty
 
-            Select Case remainingLinesToShow(3)
-                Case 1
-                    visibleBar &= callBlockOne
-                Case 2
-                    visibleBar &= callBlockTwo
-                Case 3
-                    visibleBar &= callBlockThree
-                Case 4
-                    visibleBar &= callBlockFour
-                Case 5
-                    visibleBar &= callBlockFull
-            End Select
+            CalculateNumberOfVisibleBlocks1(value, totalBlocks, 3)
 
-            Dim remainBlocks As String = ""
-            If param1 Mod 10 = 0 Then
-                For i As Integer = 1 To remainingBlocks(3)
-                    remainBlocks &= callBlockEmpty
-                Next
-            Else
-                For i As Integer = 1 To remainingBlocks(3) - 1
-                    remainBlocks &= callBlockEmpty
-                Next
-            End If
+            Dim defineChars As String = "$CustomChar(1,0,0,31,31,31,31,0,0)" &
+                                       "$CustomChar(2,0,0,16,16,16,23,0,0)" &
+                                       "$CustomChar(3,0,0,24,24,24,27,0,0)" &
+                                       "$CustomChar(4,0,0,28,28,28,29,0,0)" &
+                                       "$CustomChar(5,0,0,30,30,30,30,0,0)" &
+                                       "$CustomChar(6,0,0,0,0,0,31,0,0)"
 
-            Dim defineChars = BlockFull & BlockOne & BlockTwo & BlockThree & BlockFour & BlockEmpty
-            Return defineChars & visibleBar & remainBlocks
-            ' Return " Full:" & blocksProduced & " Remain:" & remainingBlocks(1)
+            Return defineChars & GenerateBar(3, totalBlocks)
         End If
     End Function
 
-
-    Public Function function4(param1 As String, param2 As String)
-        If LCase(param1) = "about" Or LCase(param1) = "about" Then
+    ' Function 4 - Vertical line
+    Public Function function4(param1 As String, param2 As String) As String
+        If LCase(param1) = "about" Then
             Return "4 bar"
         Else
-            If param1 = Nothing Then param1 = 0
-            If param2 = Nothing Then param2 = 0
-            CalculateNumberOfVisibleBlocks1(Convert.ToInt64(param1), Convert.ToInt64(param2), 4)
-            Dim BlockFull As String = "$CustomChar(1,0,0,0,31,0,0,0,0)"
-            Dim BlockOne As String = "$CustomChar(2,0,0,0,16,0,0,0,0)"
-            Dim BlockTwo As String = "$CustomChar(3,0,0,0,24,0,0,0,0)"
-            Dim BlockThree As String = "$CustomChar(4,0,0,0,24,0,0,0,0)"
-            Dim BlockFour As String = "$CustomChar(5,0,0,0,28,0,0,0,0)"
-            Dim BlockEmpty As String = "$CustomChar(6,0,0,0,4,0,0,0,0)"
-            Dim callBlockFull As String = "$Chr(0)"
-            Dim callBlockOne As String = "$Chr(1)"
-            Dim callBlockTwo As String = "$Chr(2)"
-            Dim callBlockThree As String = "$Chr(3)"
-            Dim callBlockFour As String = "$Chr(4)"
-            Dim callBlockEmpty As String = "$Chr(5)"
+            If String.IsNullOrEmpty(param1) Then param1 = "0"
+            If String.IsNullOrEmpty(param2) Then param2 = "0"
 
-            Dim visibleBar As String = ""
+            Dim value As Integer = Convert.ToInt32(param1)
+            Dim totalBlocks As Integer = Convert.ToInt32(param2)
+            If totalBlocks <= 0 Then Return String.Empty
 
-            For i As Integer = 1 To numVisibleBlocks(4)
-                visibleBar &= callBlockFull
-                '  blocksProduced = blocksProduced + 1
-            Next
+            CalculateNumberOfVisibleBlocks1(value, totalBlocks, 4)
 
-            Select Case remainingLinesToShow(4)
-                Case 1
-                    visibleBar &= callBlockOne
-                Case 2
-                    visibleBar &= callBlockTwo
-                Case 3
-                    visibleBar &= callBlockThree
-                Case 4
-                    visibleBar &= callBlockFour
-                Case 5
-                    visibleBar &= callBlockFull
-            End Select
+            Dim defineChars As String = "$CustomChar(1,0,0,0,31,0,0,0,0)" &
+                                       "$CustomChar(2,0,0,0,16,0,0,0,0)" &
+                                       "$CustomChar(3,0,0,0,24,0,0,0,0)" &
+                                       "$CustomChar(4,0,0,0,24,0,0,0,0)" &
+                                       "$CustomChar(5,0,0,0,28,0,0,0,0)" &
+                                       "$CustomChar(6,0,0,0,4,0,0,0,0)"
 
-            Dim remainBlocks As String = ""
-            If param1 Mod 10 = 0 Then
-                For i As Integer = 1 To remainingBlocks(4)
-                    remainBlocks &= callBlockEmpty
-                Next
-            Else
-                For i As Integer = 1 To remainingBlocks(4) - 1
-                    remainBlocks &= callBlockEmpty
-                Next
-            End If
-
-            Dim defineChars = BlockFull & BlockOne & BlockTwo & BlockThree & BlockFour & BlockEmpty
-            Return defineChars & visibleBar & remainBlocks
-            ' Return " Full:" & blocksProduced & " Remain:" & remainingBlocks(1)
+            Return defineChars & GenerateBar(4, totalBlocks)
         End If
     End Function
 
-    Public Function function5(param1 As String, param2 As String)
-        If LCase(param1) = "about" Or LCase(param1) = "about" Then
+    ' Function 5 - Checkerboard pattern
+    Public Function function5(param1 As String, param2 As String) As String
+        If LCase(param1) = "about" Then
             Return "5 bar"
         Else
-            If param1 = Nothing Then param1 = 0
-            If param2 = Nothing Then param2 = 0
-            CalculateNumberOfVisibleBlocks1(Convert.ToInt64(param1), Convert.ToInt64(param2), 5)
-            Dim BlockFull As String = "$CustomChar(1,0,0,21,10,21,10,21,0)"
-            Dim BlockOne As String = "$CustomChar(2,0,0,16,0,16,0,16,0)"
-            Dim BlockTwo As String = "$CustomChar(3,0,0,16,8,16,8,16,0)"
-            Dim BlockThree As String = "$CustomChar(4,0,0,20,8,20,8,20,0)"
-            Dim BlockFour As String = "$CustomChar(5,0,0,20,10,20,10,20,0)"
-            Dim BlockEmpty As String = "$CustomChar(6,0,0,21,0,0,0,21,0)"
-            Dim callBlockFull As String = "$Chr(0)"
-            Dim callBlockOne As String = "$Chr(1)"
-            Dim callBlockTwo As String = "$Chr(2)"
-            Dim callBlockThree As String = "$Chr(3)"
-            Dim callBlockFour As String = "$Chr(4)"
-            Dim callBlockEmpty As String = "$Chr(5)"
+            If String.IsNullOrEmpty(param1) Then param1 = "0"
+            If String.IsNullOrEmpty(param2) Then param2 = "0"
 
-            Dim visibleBar As String = ""
+            Dim value As Integer = Convert.ToInt32(param1)
+            Dim totalBlocks As Integer = Convert.ToInt32(param2)
+            If totalBlocks <= 0 Then Return String.Empty
 
-            For i As Integer = 1 To numVisibleBlocks(5)
-                visibleBar &= callBlockFull
-                '  blocksProduced = blocksProduced + 1
-            Next
+            CalculateNumberOfVisibleBlocks1(value, totalBlocks, 5)
 
-            Select Case remainingLinesToShow(5)
-                Case 1
-                    visibleBar &= callBlockOne
-                Case 2
-                    visibleBar &= callBlockTwo
-                Case 3
-                    visibleBar &= callBlockThree
-                Case 4
-                    visibleBar &= callBlockFour
-                Case 5
-                    visibleBar &= callBlockFull
-            End Select
+            Dim defineChars As String = "$CustomChar(1,0,0,21,10,21,10,21,0)" &
+                                       "$CustomChar(2,0,0,21,0,16,0,21,0)" &
+                                       "$CustomChar(3,0,0,21,8,16,8,21,0)" &
+                                       "$CustomChar(4,0,0,21,8,20,8,21,0)" &
+                                       "$CustomChar(5,0,0,12,10,20,10,21,0)" &
+                                       "$CustomChar(6,0,0,21,0,0,0,21,0)"
 
-            Dim remainBlocks As String = ""
-            If param1 Mod 10 = 0 Then
-                For i As Integer = 1 To remainingBlocks(5)
-                    remainBlocks &= callBlockEmpty
-                Next
-            Else
-                For i As Integer = 1 To remainingBlocks(5) - 1
-                    remainBlocks &= callBlockEmpty
-                Next
-            End If
-
-            Dim defineChars = BlockFull & BlockOne & BlockTwo & BlockThree & BlockFour & BlockEmpty
-            Return defineChars & visibleBar & remainBlocks
-            ' Return " Full:" & blocksProduced & " Remain:" & remainingBlocks(1)
+            Return defineChars & GenerateBar(5, totalBlocks)
         End If
     End Function
 
-
-    Public Function function6(param1 As String, param2 As String)
-        If LCase(param1) = "about" Or LCase(param1) = "about" Then
+    ' Function 6 - Block with side borders
+    Public Function function6(param1 As String, param2 As String) As String
+        If LCase(param1) = "about" Then
             Return "6 bar"
         Else
-            If param1 = Nothing Then param1 = 0
-            If param2 = Nothing Then param2 = 0
-            CalculateNumberOfVisibleBlocks1(Convert.ToInt64(param1), Convert.ToInt64(param2), 6)
-            Dim BlockFull As String = "$CustomChar(1,31,0,31,31,31,31,0,31)"
-            Dim BlockOne As String = "$CustomChar(2,31,0,16,16,16,16,0,31)"
-            Dim BlockTwo As String = "$CustomChar(3,31,0,24,24,24,24,0,31)"
-            Dim BlockThree As String = "$CustomChar(4,31,0,28,28,28,28,0,31)"
-            Dim BlockFour As String = "$CustomChar(5,31,0,30,30,30,30,0,31)"
-            Dim BlockEmpty As String = "$CustomChar(6,31,0,0,0,0,0,0,31)"
-            Dim callBlockFull As String = "$Chr(0)"
-            Dim callBlockOne As String = "$Chr(1)"
-            Dim callBlockTwo As String = "$Chr(2)"
-            Dim callBlockThree As String = "$Chr(3)"
-            Dim callBlockFour As String = "$Chr(4)"
-            Dim callBlockEmpty As String = "$Chr(5)"
+            If String.IsNullOrEmpty(param1) Then param1 = "0"
+            If String.IsNullOrEmpty(param2) Then param2 = "0"
 
-            Dim visibleBar As String = ""
+            Dim value As Integer = Convert.ToInt32(param1)
+            Dim totalBlocks As Integer = Convert.ToInt32(param2)
+            If totalBlocks <= 0 Then Return String.Empty
 
-            For i As Integer = 1 To numVisibleBlocks(6)
-                visibleBar &= callBlockFull
-                '  blocksProduced = blocksProduced + 1
-            Next
+            CalculateNumberOfVisibleBlocks1(value, totalBlocks, 6)
 
-            Select Case remainingLinesToShow(6)
-                Case 1
-                    visibleBar &= callBlockOne
-                Case 2
-                    visibleBar &= callBlockTwo
-                Case 3
-                    visibleBar &= callBlockThree
-                Case 4
-                    visibleBar &= callBlockFour
-                Case 5
-                    visibleBar &= callBlockFull
-            End Select
+            Dim defineChars As String = "$CustomChar(1,31,0,31,31,31,31,0,31)" &
+                                       "$CustomChar(2,31,0,16,16,16,16,0,31)" &
+                                       "$CustomChar(3,31,0,24,24,24,24,0,31)" &
+                                       "$CustomChar(4,31,0,28,28,28,28,0,31)" &
+                                       "$CustomChar(5,31,0,30,30,30,30,0,31)" &
+                                       "$CustomChar(6,31,0,0,0,0,0,0,31)"
 
-            Dim remainBlocks As String = ""
-            If param1 Mod 10 = 0 Then
-                For i As Integer = 1 To remainingBlocks(6)
-                    remainBlocks &= callBlockEmpty
-                Next
-            Else
-                For i As Integer = 1 To remainingBlocks(6) - 1
-                    remainBlocks &= callBlockEmpty
-                Next
-            End If
-
-            Dim defineChars = BlockFull & BlockOne & BlockTwo & BlockThree & BlockFour & BlockEmpty
-            Return defineChars & visibleBar & remainBlocks
-            ' Return " Full:" & blocksProduced & " Remain:" & remainingBlocks(1)
-        End If
-    End Function
-    Public Function function7(param1 As String, param2 As String)
-        If LCase(param1) = "about" Or LCase(param1) = "about" Then
-            Return "8 bar"
-        Else
-            If param1 = Nothing Then param1 = 0
-            If param2 = Nothing Then param2 = 0
-            CalculateNumberOfVisibleBlocks1(Convert.ToInt64(param1), Convert.ToInt64(param2), 8)
-            Dim BlockFull As String = "$CustomChar(1,31,31,31,0,31,31,31,0)"
-            Dim BlockOne As String = "$CustomChar(2,31,16,31,0,31,16,31,0)"
-            Dim BlockTwo As String = "$CustomChar(3,31,24,31,0,31,24,31,0)"
-            Dim BlockThree As String = "$CustomChar(4,31,28,31,0,31,28,31,0)"
-            Dim BlockFour As String = "$CustomChar(5,31,30,31,0,31,30,31,0)"
-            Dim BlockEmpty As String = "$CustomChar(6,31,0,31,0,31,0,31,0)"
-            Dim callBlockFull As String = "$Chr(0)"
-            Dim callBlockOne As String = "$Chr(1)"
-            Dim callBlockTwo As String = "$Chr(2)"
-            Dim callBlockThree As String = "$Chr(3)"
-            Dim callBlockFour As String = "$Chr(4)"
-            Dim callBlockEmpty As String = "$Chr(5)"
-
-            Dim visibleBar As String = ""
-
-            For i As Integer = 1 To numVisibleBlocks(8)
-                visibleBar &= callBlockFull
-                '  blocksProduced = blocksProduced + 1
-            Next
-
-            Select Case remainingLinesToShow(8)
-                Case 1
-                    visibleBar &= callBlockOne
-                Case 2
-                    visibleBar &= callBlockTwo
-                Case 3
-                    visibleBar &= callBlockThree
-                Case 4
-                    visibleBar &= callBlockFour
-                Case 5
-                    visibleBar &= callBlockFull
-            End Select
-
-            Dim remainBlocks As String = ""
-            If param1 Mod 10 = 0 Then
-                For i As Integer = 1 To remainingBlocks(8)
-                    remainBlocks &= callBlockEmpty
-                Next
-            Else
-                For i As Integer = 1 To remainingBlocks(8) - 1
-                    remainBlocks &= callBlockEmpty
-                Next
-            End If
-
-            Dim defineChars = BlockFull & BlockOne & BlockTwo & BlockThree & BlockFour & BlockEmpty
-            Return defineChars & visibleBar & remainBlocks
-            ' Return " Full:" & blocksProduced & " Remain:" & remainingBlocks(1)
+            Return defineChars & GenerateBar(6, totalBlocks)
         End If
     End Function
 
-    Public Function function8(param1 As String, param2 As String)
-        If LCase(param1) = "about" Or LCase(param1) = "about" Then
+    ' Function 7 - Bottom-heavy block
+    Public Function function7(param1 As String, param2 As String) As String
+        If LCase(param1) = "about" Then
             Return "7 bar"
         Else
-            If param1 = Nothing Then param1 = 0
-            If param2 = Nothing Then param2 = 0
-            CalculateNumberOfVisibleBlocks1(Convert.ToInt64(param1), Convert.ToInt64(param2), 7)
-            Dim BlockFull As String = "$CustomChar(1,0,0,0,31,31,31,0,0)"
-            Dim BlockOne As String = "$CustomChar(2,0,0,0,16,16,16,0,0)"
-            Dim BlockTwo As String = "$CustomChar(3,0,0,0,24,24,24,0,0)"
-            Dim BlockThree As String = "$CustomChar(4,0,0,0,28,28,28,0,0)"
-            Dim BlockFour As String = "$CustomChar(5,0,0,0,30,30,30,0,0)"
-            Dim BlockEmpty As String = "$CustomChar(6,0,0,0,0,0,0,0,0)"
-            Dim callBlockFull As String = "$Chr(0)"
-            Dim callBlockOne As String = "$Chr(1)"
-            Dim callBlockTwo As String = "$Chr(2)"
-            Dim callBlockThree As String = "$Chr(3)"
-            Dim callBlockFour As String = "$Chr(4)"
-            Dim callBlockEmpty As String = "$Chr(5)"
-            Dim visibleBar As String = ""
+            If String.IsNullOrEmpty(param1) Then param1 = "0"
+            If String.IsNullOrEmpty(param2) Then param2 = "0"
 
-            For i As Integer = 1 To numVisibleBlocks(7)
-                visibleBar &= callBlockFull
-                '  blocksProduced = blocksProduced + 1
-            Next
+            Dim value As Integer = Convert.ToInt32(param1)
+            Dim totalBlocks As Integer = Convert.ToInt32(param2)
+            If totalBlocks <= 0 Then Return String.Empty
 
-            Select Case remainingLinesToShow(7)
-                Case 1
-                    visibleBar &= callBlockOne
-                Case 2
-                    visibleBar &= callBlockTwo
-                Case 3
-                    visibleBar &= callBlockThree
-                Case 4
-                    visibleBar &= callBlockFour
-                Case 5
-                    visibleBar &= callBlockFull
-            End Select
+            CalculateNumberOfVisibleBlocks1(value, totalBlocks, 7)
 
-            Dim remainBlocks As String = ""
-            If param1 Mod 10 = 0 Then
-                For i As Integer = 1 To remainingBlocks(7)
-                    remainBlocks &= callBlockEmpty
-                Next
-            Else
-                For i As Integer = 1 To remainingBlocks(7) - 1
-                    remainBlocks &= callBlockEmpty
-                Next
-            End If
+            Dim defineChars As String = "$CustomChar(1,31,31,31,0,31,31,31,0)" &
+                                     "$CustomChar(2,31,16,31,0,31,16,31,0)" &
+                                       "$CustomChar(3,31,24,31,0,31,24,31,0)" &
+                                       "$CustomChar(4,31,28,31,0,31,28,31,0)" &
+                                      "$CustomChar(5,31,30,31,0,31,30,31,0)" &
+                                       "$CustomChar(6,31,0,31,0,31,0,31,0)"
 
-            Dim defineChars = BlockFull & BlockOne & BlockTwo & BlockThree & BlockFour & BlockEmpty
-            Return defineChars & visibleBar & remainBlocks
-            ' Return " Full:" & blocksProduced & " Remain:" & remainingBlocks(1)
+            Return defineChars & GenerateBar(7, totalBlocks)
         End If
     End Function
 
+    ' Function 8 - Top-heavy block
+    Public Function function8(param1 As String, param2 As String) As String
+        If LCase(param1) = "about" Then
+            Return "8 bar"
+        Else
+            If String.IsNullOrEmpty(param1) Then param1 = "0"
+            If String.IsNullOrEmpty(param2) Then param2 = "0"
 
+            Dim value As Integer = Convert.ToInt32(param1)
+            Dim totalBlocks As Integer = Convert.ToInt32(param2)
+            If totalBlocks <= 0 Then Return String.Empty
 
-    Public Function function9(param1 As String, param2 As String)
-        If LCase(param1) = "about" Or LCase(param1) = "about" Then
+            CalculateNumberOfVisibleBlocks1(value, totalBlocks, 8)
+
+            Dim defineChars As String = "$CustomChar(1,0,0,0,31,31,31,0,0)" &
+                                     "$CustomChar(2,0,0,0,16,31,16,0,0)" &
+                                  "$CustomChar(3,0,0,0,24,31,24,0,0)" &
+                                   "$CustomChar(4,0,0,0,28,31,28,0,0)" &
+                                     "$CustomChar(5,0,0,0,30,31,30,0,0)" &
+                                      "$CustomChar(6,0,0,0,0,31,0,0,0)"
+
+            Return defineChars & GenerateBar(8, totalBlocks)
+        End If
+    End Function
+
+    ' Function 9 - Small top block
+    Public Function function9(param1 As String, param2 As String) As String
+        If LCase(param1) = "about" Then
             Return "9 bar"
         Else
-            If param1 = Nothing Then param1 = 0
-            If param2 = Nothing Then param2 = 0
-            CalculateNumberOfVisibleBlocks1(Convert.ToInt64(param1), Convert.ToInt64(param2), 9)
-            Dim BlockFull As String = "$CustomChar(1,0,0,31,31,0,0,0,0)"
-            Dim BlockOne As String = "$CustomChar(2,0,0,16,16,0,0,0,0)"
-            Dim BlockTwo As String = "$CustomChar(3,0,0,24,24,0,0,0,0)"
-            Dim BlockThree As String = "$CustomChar(4,0,0,28,28,0,0,0,0)"
-            Dim BlockFour As String = "$CustomChar(5,0,0,30,30,0,0,0,0)"
-            Dim BlockEmpty As String = "$CustomChar(6,0,0,0,0,0,0,0,0)"
-            Dim callBlockFull As String = "$Chr(0)"
-            Dim callBlockOne As String = "$Chr(1)"
-            Dim callBlockTwo As String = "$Chr(2)"
-            Dim callBlockThree As String = "$Chr(3)"
-            Dim callBlockFour As String = "$Chr(4)"
-            Dim callBlockEmpty As String = "$Chr(5)"
+            If String.IsNullOrEmpty(param1) Then param1 = "0"
+            If String.IsNullOrEmpty(param2) Then param2 = "0"
 
-            Dim visibleBar As String = ""
+            Dim value As Integer = Convert.ToInt32(param1)
+            Dim totalBlocks As Integer = Convert.ToInt32(param2)
+            If totalBlocks <= 0 Then Return String.Empty
 
-            For i As Integer = 1 To numVisibleBlocks(9)
-                visibleBar &= callBlockFull
-                '  blocksProduced = blocksProduced + 1
-            Next
+            CalculateNumberOfVisibleBlocks1(value, totalBlocks, 9)
 
-            Select Case remainingLinesToShow(9)
-                Case 1
-                    visibleBar &= callBlockOne
-                Case 2
-                    visibleBar &= callBlockTwo
-                Case 3
-                    visibleBar &= callBlockThree
-                Case 4
-                    visibleBar &= callBlockFour
-                Case 5
-                    visibleBar &= callBlockFull
-            End Select
+            Dim defineChars As String = "$CustomChar(1,0,0,31,31,0,0,0,0)" &
+                                       "$CustomChar(2,0,0,16,31,0,0,0,0)" &
+                                       "$CustomChar(3,0,0,24,31,0,0,0,0)" &
+                                       "$CustomChar(4,0,0,28,31,0,0,0,0)" &
+                                       "$CustomChar(5,0,0,30,31,0,0,0,0)" &
+                                        "$CustomChar(6,0,0,0,31,0,0,0,0)"
 
-            Dim remainBlocks As String = ""
-            If param1 Mod 10 = 0 Then
-                For i As Integer = 1 To remainingBlocks(9)
-                    remainBlocks &= callBlockEmpty
-                Next
-            Else
-                For i As Integer = 1 To remainingBlocks(9) - 1
-                    remainBlocks &= callBlockEmpty
-                Next
-            End If
-
-            Dim defineChars = BlockFull & BlockOne & BlockTwo & BlockThree & BlockFour & BlockEmpty
-            Return defineChars & visibleBar & remainBlocks
-            ' Return " Full:" & blocksProduced & " Remain:" & remainingBlocks(1)
+            Return defineChars & GenerateBar(9, totalBlocks)
         End If
     End Function
 
-    Public Function function10(param1 As String, param2 As String)
-        If LCase(param1) = "about" Or LCase(param1) = "about" Then
+    ' Function 10 - Diagonal pattern
+    Public Function function10(param1 As String, param2 As String) As String
+        If LCase(param1) = "about" Then
             Return "10 bar"
         Else
-            If param1 = Nothing Then param1 = 0
-            If param2 = Nothing Then param2 = 0
-            CalculateNumberOfVisibleBlocks1(Convert.ToInt64(param1), Convert.ToInt64(param2), 10)
-            Dim BlockFull As String = "$CustomChar(1,0,0,21,10,21,10,21,0)"
-            Dim BlockOne As String = "$CustomChar(2,0,0,16,0,16,0,16,0)"
-            Dim BlockTwo As String = "$CustomChar(3,0,0,16,8,16,8,16,0)"
-            Dim BlockThree As String = "$CustomChar(4,0,0,20,8,20,8,20,0)"
-            Dim BlockFour As String = "$CustomChar(5,0,0,20,10,20,10,20,0)"
-            Dim BlockEmpty As String = "$CustomChar(6,0,0,0,0,0,0,0,0)"
-            Dim callBlockFull As String = "$Chr(0)"
-            Dim callBlockOne As String = "$Chr(1)"
-            Dim callBlockTwo As String = "$Chr(2)"
-            Dim callBlockThree As String = "$Chr(3)"
-            Dim callBlockFour As String = "$Chr(4)"
-            Dim callBlockEmpty As String = "$Chr(5)"
+            If String.IsNullOrEmpty(param1) Then param1 = "0"
+            If String.IsNullOrEmpty(param2) Then param2 = "0"
 
-            Dim visibleBar As String = ""
+            Dim value As Integer = Convert.ToInt32(param1)
+            Dim totalBlocks As Integer = Convert.ToInt32(param2)
+            If totalBlocks <= 0 Then Return String.Empty
 
-            For i As Integer = 1 To numVisibleBlocks(10)
-                visibleBar &= callBlockFull
-                '  blocksProduced = blocksProduced + 1
-            Next
+            CalculateNumberOfVisibleBlocks1(value, totalBlocks, 10)
 
-            Select Case remainingLinesToShow(10)
-                Case 1
-                    visibleBar &= callBlockOne
-                Case 2
-                    visibleBar &= callBlockTwo
-                Case 3
-                    visibleBar &= callBlockThree
-                Case 4
-                    visibleBar &= callBlockFour
-                Case 5
-                    visibleBar &= callBlockFull
-            End Select
+            Dim defineChars As String = "$CustomChar(1,0,0,21,10,21,10,21,0)" &
+                                       "$CustomChar(2,0,0,16,0,16,10,21,0)" &
+                                       "$CustomChar(3,0,0,16,8,16,10,21,0)" &
+                                       "$CustomChar(4,0,0,20,8,20,10,21,0)" &
+                                       "$CustomChar(5,0,0,20,10,20,10,21,0)" &
+                                       "$CustomChar(6,0,0,0,0,0,10,21,0)"
 
-            Dim remainBlocks As String = ""
-            If param1 Mod 10 = 0 Then
-                For i As Integer = 1 To remainingBlocks(10)
-                    remainBlocks &= callBlockEmpty
-                Next
-            Else
-                For i As Integer = 1 To remainingBlocks(10) - 1
-                    remainBlocks &= callBlockEmpty
-                Next
-            End If
-
-            Dim defineChars = BlockFull & BlockOne & BlockTwo & BlockThree & BlockFour & BlockEmpty
-            Return defineChars & visibleBar & remainBlocks
-            ' Return " Full:" & blocksProduced & " Remain:" & remainingBlocks(1)
+            Return defineChars & GenerateBar(10, totalBlocks)
         End If
     End Function
+    Public Function function11(param1 As String, param2 As String) As String
+        '  If LCase(param1) = "about" Then
 
+        Return "not defined"
+        '   End If
+    End Function
+    Public Function function12(param1 As String, param2 As String) As String
+        ' If LCase(param1) = "about" Then
 
+        Return "not defined"
+        '  End If
+    End Function
 
-
-
-    Public Function function13(param1 As String, param2 As String)
-        If LCase(param1) = "about" Or LCase(param1) = "about" Then
+    ' Function 13 - Tailless block (variant 1)
+    Public Function function13(param1 As String, param2 As String) As String
+        If LCase(param1) = "about" Then
             Return "13 tailless bar"
         Else
-            If param1 = Nothing Then param1 = 0
-            If param2 = Nothing Then param2 = 0
-            CalculateNumberOfVisibleBlocks1(Convert.ToInt64(param1), Convert.ToInt64(param2), 13)
-            Dim BlockFull As String = "$CustomChar(1,0,0,31,31,31,31,0,0)"
-            Dim BlockOne As String = "$CustomChar(2,0,0,16,16,16,16,0,0)"
-            Dim BlockTwo As String = "$CustomChar(3,0,0,24,24,24,24,0,0)"
-            Dim BlockThree As String = "$CustomChar(4,0,0,28,28,28,28,0,0)"
-            Dim BlockFour As String = "$CustomChar(5,0,0,30,30,30,30,0,0)"
-            Dim BlockEmpty As String = "$CustomChar(6,0,0,30,30,30,30,0,0)"
-            Dim callBlockFull As String = "$Chr(0)"
-            Dim callBlockOne As String = "$Chr(1)"
-            Dim callBlockTwo As String = "$Chr(2)"
-            Dim callBlockThree As String = "$Chr(3)"
-            Dim callBlockFour As String = "$Chr(4)"
-            Dim callBlockEmpty As String = "$Chr(5)"
-            Dim visibleBar As String = ""
+            If String.IsNullOrEmpty(param1) Then param1 = "0"
+            If String.IsNullOrEmpty(param2) Then param2 = "0"
 
-            For i As Integer = 1 To numVisibleBlocks(13)
-                visibleBar &= callBlockFull
-                '  blocksProduced = blocksProduced + 1
-            Next
+            Dim value As Integer = Convert.ToInt32(param1)
+            Dim totalBlocks As Integer = Convert.ToInt32(param2)
+            If totalBlocks <= 0 Then Return String.Empty
 
-            Select Case remainingLinesToShow(13)
-                Case 1
-                    visibleBar &= callBlockOne
-                Case 2
-                    visibleBar &= callBlockTwo
-                Case 3
-                    visibleBar &= callBlockThree
-                Case 4
-                    visibleBar &= callBlockFour
-                Case 5
-                    visibleBar &= callBlockFull
-            End Select
+            CalculateNumberOfVisibleBlocks1(value, totalBlocks, 13)
 
-            Dim remainBlocks As String = ""
-            If param1 Mod 10 = 0 Then
-                For i As Integer = 1 To remainingBlocks(13)
-                    remainBlocks &= callBlockEmpty
-                Next
-            Else
-                For i As Integer = 1 To remainingBlocks(13) - 1
-                    remainBlocks &= callBlockEmpty
-                Next
-            End If
+            Dim defineChars As String = "$CustomChar(1,0,0,31,31,31,31,0,0)" &
+                                       "$CustomChar(2,0,0,16,16,16,16,0,0)" &
+                                       "$CustomChar(3,0,0,24,24,24,24,0,0)" &
+                                       "$CustomChar(4,0,0,28,28,28,28,0,0)" &
+                                       "$CustomChar(5,0,0,30,30,30,30,0,0)" &
+                                       "$CustomChar(6,0,0,0,0,0,0,0,0)"
 
-            Dim defineChars = BlockFull & BlockOne & BlockTwo & BlockThree & BlockFour & BlockEmpty
-            Return defineChars & visibleBar & remainBlocks
-            ' Return " Full:" & blocksProduced & " Remain:" & remainingBlocks(1)
+            Return defineChars & GenerateBar(13, totalBlocks)
         End If
     End Function
 
-    Public Function function14(param1 As String, param2 As String)
-        If LCase(param1) = "about" Or LCase(param1) = "about" Then
+    ' Function 14 - Tailless block (variant 2)
+    Public Function function14(param1 As String, param2 As String) As String
+        If LCase(param1) = "about" Then
             Return "14 tailless bar"
         Else
-            If param1 = Nothing Then param1 = 0
-            If param2 = Nothing Then param2 = 0
-            CalculateNumberOfVisibleBlocks1(Convert.ToInt64(param1), Convert.ToInt64(param2), 14)
-            Dim BlockFull As String = "$CustomChar(1,0,0,0,31,0,0,0,0)"
-            Dim BlockOne As String = "$CustomChar(2,0,0,0,16,0,0,0,0)"
-            Dim BlockTwo As String = "$CustomChar(3,0,0,0,24,0,0,0,0)"
-            Dim BlockThree As String = "$CustomChar(4,0,0,0,24,0,0,0,0)"
-            Dim BlockFour As String = "$CustomChar(5,0,0,0,28,0,0,0,0)"
-            Dim BlockEmpty As String = "$CustomChar(6,0,0,0,30,0,0,0,0)"
-            Dim callBlockFull As String = "$Chr(0)"
-            Dim callBlockOne As String = "$Chr(1)"
-            Dim callBlockTwo As String = "$Chr(2)"
-            Dim callBlockThree As String = "$Chr(3)"
-            Dim callBlockFour As String = "$Chr(4)"
-            Dim callBlockEmpty As String = "$Chr(5)"
+            If String.IsNullOrEmpty(param1) Then param1 = "0"
+            If String.IsNullOrEmpty(param2) Then param2 = "0"
 
-            Dim visibleBar As String = ""
+            Dim value As Integer = Convert.ToInt32(param1)
+            Dim totalBlocks As Integer = Convert.ToInt32(param2)
+            If totalBlocks <= 0 Then Return String.Empty
 
-            For i As Integer = 1 To numVisibleBlocks(14)
-                visibleBar &= callBlockFull
-                '  blocksProduced = blocksProduced + 1
-            Next
+            CalculateNumberOfVisibleBlocks1(value, totalBlocks, 14)
 
-            Select Case remainingLinesToShow(14)
-                Case 1
-                    visibleBar &= callBlockOne
-                Case 2
-                    visibleBar &= callBlockTwo
-                Case 3
-                    visibleBar &= callBlockThree
-                Case 4
-                    visibleBar &= callBlockFour
-                Case 5
-                    visibleBar &= callBlockFull
-            End Select
+            Dim defineChars As String = "$CustomChar(1,0,0,0,31,0,0,0,0)" &
+                                       "$CustomChar(2,0,0,0,16,0,0,0,0)" &
+                                       "$CustomChar(3,0,0,0,24,0,0,0,0)" &
+                                       "$CustomChar(4,0,0,0,24,0,0,0,0)" &
+                                       "$CustomChar(5,0,0,0,28,0,0,0,0)" &
+                                       "$CustomChar(6,0,0,0,0,0,0,0,0)"
 
-            Dim remainBlocks As String = ""
-            If param1 Mod 10 = 0 Then
-                For i As Integer = 1 To remainingBlocks(14)
-                    remainBlocks &= callBlockEmpty
-                Next
-            Else
-                For i As Integer = 1 To remainingBlocks(14) - 1
-                    remainBlocks &= callBlockEmpty
-                Next
-            End If
-
-            Dim defineChars = BlockFull & BlockOne & BlockTwo & BlockThree & BlockFour & BlockEmpty
-            Return defineChars & visibleBar & remainBlocks
-            ' Return " Full:" & blocksProduced & " Remain:" & remainingBlocks(1)
+            Return defineChars & GenerateBar(14, totalBlocks)
         End If
     End Function
 
 
+    Public Function function15(param1 As String, param2 As String) As String
+        '   If LCase(param1) = "about" Then
 
-    Public Function function19(param1 As String, param2 As String)
+        Return "Not defined. Use functions 1~10 and 13,14"
+        '   End If
+    End Function
+    Public Function function16(param1 As String, param2 As String) As String
+        '  If LCase(param1) = "about" Then
 
-        If LCase(param1) = "about" Or LCase(param1) = "about" Then
-            Return "diagnostics for barra "
+
+        Return "Not defined. Use functions 1~10 and 13,14"
+        '  End If
+    End Function
+    Public Function function17(param1 As String, param2 As String) As String
+        '  If LCase(param1) = "about" Then
+
+
+        Return "Not defined. Use functions 1~10 and 13,14"
+        '  End If
+    End Function
+    Public Function function18(param1 As String, param2 As String) As String
+        '   If LCase(param1) = "about" Then
+
+        Return "Not defined. Use functions 1~10 and 13,14"
+        '  End If
+    End Function
+
+    ' Diagnostic function
+    Public Function function19(param1 As String, param2 As String) As String
+        If LCase(param1) = "about" Then
+            Return "diagnostics for barra"
         Else
-            '  CalculateNumberOfVisibleBlocks1(Convert.ToInt64(param1), Convert.ToInt64(param2), 1)
             Return "Not in dev mode"
         End If
-
     End Function
 
-
-    Public Function function20(param1 As String, param2 As String)
-        If LCase(param1) = "about" Or LCase(param1) = "about" Then
+    ' Credits function
+    Public Function function20(param1 As String, param2 As String) As String
+        If LCase(param1) = "about" Then
             Return "barra from LCD Smartie"
         Else
-            Return "barra ver1.0 created by limbo"
+            Return "barra ver1.3 created by limbo"
         End If
     End Function
 
-
-
-    Public Function SmartieDemo()
+    ' Demo function
+    Public Function SmartieDemo() As String
         Dim demolist As New Text.StringBuilder()
-
         demolist.AppendLine("barra for LCD Smartie")
         demolist.AppendLine("This plugin creates customized bars from LCD Smartie")
         demolist.AppendLine("----- Functions 1 to 10 are ten different styles of bars -----")
@@ -765,22 +427,16 @@ Public Class LCDSmartie
         demolist.AppendLine("https://www.lcdsmartie.org")
         demolist.AppendLine("> New official development branch (latest version)")
         demolist.AppendLine("https://github.com/LCD-Smartie/LCDSmartie")
-        demolist.AppendLine("")
-
-        Dim result As String = demolist.ToString()
-        Return result
+        Return demolist.ToString()
     End Function
 
-    Public Function SmartieInfo()
-        Return "Developer: Nikos Georgousis (Limbo)" & vbNewLine & "Version: 1.2 "
+    ' Info function
+    Public Function SmartieInfo() As String
+        Return "Developer: Nikos Georgousis (Limbo)" & vbNewLine & "Version: 1.3 "
     End Function
 
+    ' Refresh interval
     Public Function GetMinRefreshInterval() As Integer
-
-        Return 5 ' 5 ms 
-
+        Return 5 ' 5 ms
     End Function
-
-
-
 End Class

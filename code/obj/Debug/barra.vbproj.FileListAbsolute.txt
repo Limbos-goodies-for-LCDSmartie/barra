@@ -8,3 +8,13 @@ E:\Nextcloud\Development\LCD Smartie Plugins\barra\barra\bin\Debug\barra.xml
 E:\Nextcloud\Development\LCD Smartie Plugins\barra\barra\obj\Debug\barra.dll
 E:\Nextcloud\Development\LCD Smartie Plugins\barra\barra\obj\Debug\barra.xml
 E:\Nextcloud\Development\LCD Smartie Plugins\barra\barra\obj\Debug\barra.pdb
+C:\Users\Nikos\Desktop\barra-main\code\bin\Debug\barra.dll
+C:\Users\Nikos\Desktop\barra-main\code\bin\Debug\barra.pdb
+C:\Users\Nikos\Desktop\barra-main\code\bin\Debug\barra.xml
+C:\Users\Nikos\Desktop\barra-main\code\obj\Debug\barra.vbproj.AssemblyReference.cache
+C:\Users\Nikos\Desktop\barra-main\code\obj\Debug\barra.Resources.resources
+C:\Users\Nikos\Desktop\barra-main\code\obj\Debug\barra.vbproj.GenerateResource.cache
+C:\Users\Nikos\Desktop\barra-main\code\obj\Debug\barra.vbproj.CoreCompileInputs.cache
+C:\Users\Nikos\Desktop\barra-main\code\obj\Debug\barra.dll
+C:\Users\Nikos\Desktop\barra-main\code\obj\Debug\barra.xml
+C:\Users\Nikos\Desktop\barra-main\code\obj\Debug\barra.pdb
